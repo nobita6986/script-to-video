@@ -2,10 +2,11 @@ import React, { useState, useCallback } from 'react';
 import ScriptInput from './components/ScriptInput';
 import SegmentList from './components/SegmentList';
 import ApiManagerModal from './components/ApiManagerModal';
-import { ScriptSegment, ProcessingStatus, ExportData, AudioProvider } from './types';
+import { ScriptSegment, ProcessingStatus, AudioProvider } from './types';
 import { analyzeScript, generateGeminiSpeech } from './services/gemini';
 import { generateElevenLabsSpeech } from './services/elevenlabs';
 import { Github, Zap, Key } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const App: React.FC = () => {
   const [segments, setSegments] = useState<ScriptSegment[]>([]);
@@ -87,24 +88,31 @@ const App: React.FC = () => {
     setGeneratingAll(false);
   };
 
-  const handleExport = () => {
-    const data: ExportData = {
-      segments: segments.map(s => ({
-        text: s.originalText,
-        image_prompt: s.imagePrompt,
-        audio_generated: !!s.audioUrl,
-        provider: s.provider
-      }))
-    };
+  const handleExportExcel = () => {
+    // 1. Prepare data structure: Order, Script Content, Image Prompt
+    const exportData = segments.map((s, index) => ({
+      "Order": index + 1,
+      "Script Content": s.originalText,
+      "Image Prompt": s.imagePrompt
+    }));
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `script-genie-export-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // 2. Create a new workbook and worksheet
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    
+    // 3. Append worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Script Segments");
+
+    // 4. Adjust column widths (optional but nice)
+    const wscols = [
+      { wch: 10 }, // Order
+      { wch: 60 }, // Script Content
+      { wch: 60 }, // Image Prompt
+    ];
+    worksheet['!cols'] = wscols;
+
+    // 5. Write file
+    XLSX.writeFile(workbook, `script-genie-export-${Date.now()}.xlsx`);
   };
 
   return (
@@ -159,7 +167,7 @@ const App: React.FC = () => {
           onGenerateAudio={handleGenerateAudio}
           onGenerateAllAudio={handleGenerateAllAudio}
           isGeneratingAll={generatingAll}
-          onExport={handleExport}
+          onExport={handleExportExcel}
         />
       </main>
     </div>

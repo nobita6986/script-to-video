@@ -43,7 +43,7 @@ const SegmentList: React.FC<SegmentListProps> = ({
             className="flex items-center gap-2 px-4 py-2 bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 hover:text-emerald-300 rounded-lg border border-emerald-900/50 transition-colors text-sm font-medium"
           >
             <Download className="w-4 h-4" />
-            Export JSON
+            Export Excel
           </button>
         </div>
       </div>
