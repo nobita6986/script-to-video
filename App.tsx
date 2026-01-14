@@ -5,7 +5,7 @@ import ApiManagerModal from './components/ApiManagerModal';
 import { ScriptSegment, ProcessingStatus, AudioProvider } from './types';
 import { analyzeScript, generateGeminiSpeech, generateGeminiImage } from './services/gemini';
 import { generateElevenLabsSpeech } from './services/elevenlabs';
-import { Github, Zap, Key } from 'lucide-react';
+import { Github, Zap, Key, Sparkles } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 
@@ -104,8 +104,6 @@ const App: React.FC = () => {
 
   const handleGenerateAllAudio = async () => {
     setGeneratingAllAudio(true);
-    // Process sequentially to avoid rate limits
-    // Defaults to Gemini for bulk operations for now to save 11Labs credits
     const pendingSegments = segments.filter(s => !s.audioUrl);
     
     for (const segment of pendingSegments) {
@@ -119,40 +117,25 @@ const App: React.FC = () => {
     setGeneratingAllImages(true);
     const pendingSegments = segments.filter(s => !s.imageUrl);
 
-    // Using a concurrency limit to speed up but not hit severe rate limits immediately
-    // Or just sequential for safety. Let's do sequential for now to ensure stability.
     for (const segment of pendingSegments) {
         await handleGenerateImage(segment.id);
-        // Small delay between requests
         await new Promise(r => setTimeout(r, 1000));
     }
     setGeneratingAllImages(false);
   };
 
   const handleExportExcel = () => {
-    // 1. Prepare data structure: Order, Script Content, Image Prompt
     const exportData = segments.map((s, index) => ({
       "Order": index + 1,
       "Script Content": s.originalText,
       "Image Prompt": s.imagePrompt
     }));
 
-    // 2. Create a new workbook and worksheet
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    
-    // 3. Append worksheet to workbook
     XLSX.utils.book_append_sheet(workbook, worksheet, "Script Segments");
-
-    // 4. Adjust column widths (optional but nice)
-    const wscols = [
-      { wch: 10 }, // Order
-      { wch: 60 }, // Script Content
-      { wch: 60 }, // Image Prompt
-    ];
+    const wscols = [{ wch: 10 }, { wch: 60 }, { wch: 60 }];
     worksheet['!cols'] = wscols;
-
-    // 5. Write file
     XLSX.writeFile(workbook, `script-genie-export-${Date.now()}.xlsx`);
   };
 
@@ -163,15 +146,11 @@ const App: React.FC = () => {
 
     segments.forEach((seg, idx) => {
       if (seg.imageUrl) {
-        // seg.imageUrl is formatted as "data:image/png;base64,..."
-        // Extract base64 part
         const parts = seg.imageUrl.split(',');
         if (parts.length === 2) {
             const mimeMatch = parts[0].match(/:(.*?);/);
             const extension = mimeMatch ? mimeMatch[1].split('/')[1] : 'png';
             const base64Data = parts[1];
-            
-            // Pad index with leading zeros for proper sorting in OS
             const paddedIndex = String(idx + 1).padStart(3, '0');
             folder?.file(`segment_${paddedIndex}.${extension}`, base64Data, { base64: true });
             count++;
@@ -207,13 +186,8 @@ const App: React.FC = () => {
 
     segments.forEach((seg, idx) => {
       if (seg.audioBlob) {
-        // Pad index with leading zeros for proper sorting in OS
         const paddedIndex = String(idx + 1).padStart(3, '0');
-        // Determine extension based on provider or assume wav (Gemini usually WAV/PCM converted)
-        // ElevenLabs is usually MP3, but our types might wrap it. 
-        // pcmToWav returns type 'audio/wav'.
         const extension = seg.provider === 'elevenlabs' ? 'mp3' : 'wav';
-        
         folder?.file(`segment_${paddedIndex}.${extension}`, seg.audioBlob);
         count++;
       }
@@ -241,31 +215,34 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 pb-20">
+    <div className="min-h-screen bg-slate-950 pb-20 relative overflow-hidden">
+        {/* Background Ambient Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-violet-600/10 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+
       <ApiManagerModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
       
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
+      <header className="sticky top-0 z-20 glass border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20">
+              <Zap className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 tracking-tight">
               ScriptGenie
             </h1>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button 
               onClick={() => setIsApiModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm border border-gray-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 rounded-full text-sm font-medium border border-white/10 transition-all hover:shadow-lg active:scale-95"
             >
-              <Key className="w-4 h-4" />
-              API Manager
+              <Key className="w-4 h-4 text-violet-400" />
+              <span className="hidden sm:inline">API Keys</span>
             </button>
-            <div className="h-6 w-px bg-gray-800 hidden md:block" />
-            <a href="#" className="text-gray-400 hover:text-white transition-colors hidden md:block">
+            <div className="h-6 w-px bg-white/10 hidden md:block" />
+            <a href="#" className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
               <Github className="w-5 h-5" />
             </a>
           </div>
@@ -273,12 +250,17 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="px-6 py-10">
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-bold text-white mb-4">Transform Scripts into Multimedia</h2>
-          <p className="text-gray-400 max-w-2xl mx-auto">
-            Input your script below. We'll split it into scenes, write image prompts for you, 
-            and generate high-quality voiceovers using <strong>Gemini</strong> or <strong>ElevenLabs</strong>.
+      <main className="px-4 sm:px-6 py-8 sm:py-12 max-w-7xl mx-auto">
+        <div className="text-center mb-12 sm:mb-16 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-semibold tracking-wide uppercase">
+            <Sparkles className="w-3 h-3" />
+            AI-Powered Workflow
+          </div>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+            Script to <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">Masterpiece</span>
+          </h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
+            Turn your text into a full multimedia experience. Generate scenes, vivid image prompts, and lifelike voiceovers in seconds.
           </p>
         </div>
 

@@ -4,16 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ScriptGenie - AI Script Processor</title>
+    
+    <!-- Add Inter Font for better readability -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
             colors: {
-              gray: {
-                750: '#2d3748',
-                850: '#1a202c',
-                950: '#0d1117',
+              // Using Slate for a softer dark mode
+              slate: {
+                850: '#1e293b', 
+                950: '#020617', 
+              },
+              violet: {
+                550: '#7c3aed', // Custom accent
               }
             }
           }
@@ -21,20 +33,30 @@
       }
     </script>
     <style>
-      /* Custom scrollbar for better aesthetics */
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      /* Custom scrollbar */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #1a202c; 
+        background: #0f172a; 
       }
       ::-webkit-scrollbar-thumb {
-        background: #4a5568; 
+        background: #334155; 
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #718096; 
+        background: #475569; 
+      }
+      
+      /* Glassmorphism utilities */
+      .glass {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
       }
     </style>
   <script type="importmap">
@@ -51,7 +73,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-950 text-white min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+  <body class="bg-slate-950 text-slate-50 min-h-screen antialiased selection:bg-violet-500 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
