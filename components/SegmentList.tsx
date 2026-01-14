@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScriptSegment, AudioProvider } from '../types';
 import SegmentItem from './SegmentItem';
-import { Download, PlayCircle, Loader2 } from 'lucide-react';
+import { Download, PlayCircle, Loader2, Image as ImageIcon } from 'lucide-react';
 
 interface SegmentListProps {
   segments: ScriptSegment[];
@@ -9,6 +9,9 @@ interface SegmentListProps {
   onGenerateAllAudio: () => void;
   isGeneratingAll: boolean;
   onExport: () => void;
+  onGenerateImage: (id: string) => void;
+  onGenerateAllImages: () => void;
+  isGeneratingAllImages: boolean;
 }
 
 const SegmentList: React.FC<SegmentListProps> = ({ 
@@ -16,7 +19,10 @@ const SegmentList: React.FC<SegmentListProps> = ({
   onGenerateAudio, 
   onGenerateAllAudio,
   isGeneratingAll,
-  onExport 
+  onExport,
+  onGenerateImage,
+  onGenerateAllImages,
+  isGeneratingAllImages
 }) => {
   if (segments.length === 0) return null;
 
@@ -28,14 +34,23 @@ const SegmentList: React.FC<SegmentListProps> = ({
           <span className="text-sm font-normal text-gray-500 ml-2">({segments.length} items)</span>
         </h2>
         
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={onGenerateAllAudio}
-            disabled={isGeneratingAll}
+            disabled={isGeneratingAll || isGeneratingAllImages}
             className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-indigo-400 hover:text-indigo-300 rounded-lg border border-gray-700 transition-colors text-sm font-medium disabled:opacity-50"
           >
             {isGeneratingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
-            Generate All (Gemini)
+            Generate All Audio
+          </button>
+
+          <button
+            onClick={onGenerateAllImages}
+            disabled={isGeneratingAll || isGeneratingAllImages}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-pink-400 hover:text-pink-300 rounded-lg border border-gray-700 transition-colors text-sm font-medium disabled:opacity-50"
+          >
+             {isGeneratingAllImages ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+            Generate All Images
           </button>
           
           <button
@@ -55,6 +70,7 @@ const SegmentList: React.FC<SegmentListProps> = ({
             segment={segment} 
             index={index}
             onGenerateAudio={onGenerateAudio}
+            onGenerateImage={onGenerateImage}
           />
         ))}
       </div>

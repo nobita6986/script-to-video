@@ -3,7 +3,7 @@ import ScriptInput from './components/ScriptInput';
 import SegmentList from './components/SegmentList';
 import ApiManagerModal from './components/ApiManagerModal';
 import { ScriptSegment, ProcessingStatus, AudioProvider } from './types';
-import { analyzeScript, generateGeminiSpeech } from './services/gemini';
+import { analyzeScript, generateGeminiSpeech, generateGeminiImage } from './services/gemini';
 import { generateElevenLabsSpeech } from './services/elevenlabs';
 import { Github, Zap, Key } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -11,7 +11,8 @@ import * as XLSX from 'xlsx';
 const App: React.FC = () => {
   const [segments, setSegments] = useState<ScriptSegment[]>([]);
   const [status, setStatus] = useState<ProcessingStatus>(ProcessingStatus.IDLE);
-  const [generatingAll, setGeneratingAll] = useState(false);
+  const [generatingAllAudio, setGeneratingAllAudio] = useState(false);
+  const [generatingAllImages, setGeneratingAllImages] = useState(false);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
 
   const handleAnalyze = async (text: string) => {
@@ -24,7 +25,8 @@ const App: React.FC = () => {
         originalText: item.text,
         imagePrompt: item.image_prompt,
         isGeneratingAudio: false,
-        isPlaying: false
+        isPlaying: false,
+        isGeneratingImage: false
       }));
 
       setSegments(newSegments);
@@ -75,8 +77,32 @@ const App: React.FC = () => {
     }
   }, [segments]);
 
+  const handleGenerateImage = useCallback(async (id: string) => {
+    const segment = segments.find(s => s.id === id);
+    if (!segment) return;
+
+    setSegments(prev => prev.map(s => s.id === id ? { ...s, isGeneratingImage: true } : s));
+
+    try {
+      const imageUrl = await generateGeminiImage(segment.imagePrompt);
+
+      setSegments(prev => prev.map(s => s.id === id ? { 
+        ...s, 
+        isGeneratingImage: false,
+        imageUrl: imageUrl
+      } : s));
+    } catch (error: any) {
+      console.error(error);
+      if (error.message && error.message.includes('No API keys')) {
+        setIsApiModalOpen(true);
+      }
+      // alert(`Image generation failed: ${error.message}`);
+      setSegments(prev => prev.map(s => s.id === id ? { ...s, isGeneratingImage: false } : s));
+    }
+  }, [segments]);
+
   const handleGenerateAllAudio = async () => {
-    setGeneratingAll(true);
+    setGeneratingAllAudio(true);
     // Process sequentially to avoid rate limits
     // Defaults to Gemini for bulk operations for now to save 11Labs credits
     const pendingSegments = segments.filter(s => !s.audioUrl);
@@ -85,7 +111,21 @@ const App: React.FC = () => {
       await handleGenerateAudio(segment.id, 'gemini');
       await new Promise(r => setTimeout(r, 200));
     }
-    setGeneratingAll(false);
+    setGeneratingAllAudio(false);
+  };
+
+  const handleGenerateAllImages = async () => {
+    setGeneratingAllImages(true);
+    const pendingSegments = segments.filter(s => !s.imageUrl);
+
+    // Using a concurrency limit to speed up but not hit severe rate limits immediately
+    // Or just sequential for safety. Let's do sequential for now to ensure stability.
+    for (const segment of pendingSegments) {
+        await handleGenerateImage(segment.id);
+        // Small delay between requests
+        await new Promise(r => setTimeout(r, 1000));
+    }
+    setGeneratingAllImages(false);
   };
 
   const handleExportExcel = () => {
@@ -166,8 +206,11 @@ const App: React.FC = () => {
           segments={segments}
           onGenerateAudio={handleGenerateAudio}
           onGenerateAllAudio={handleGenerateAllAudio}
-          isGeneratingAll={generatingAll}
+          isGeneratingAll={generatingAllAudio}
           onExport={handleExportExcel}
+          onGenerateImage={handleGenerateImage}
+          onGenerateAllImages={handleGenerateAllImages}
+          isGeneratingAllImages={generatingAllImages}
         />
       </main>
     </div>

@@ -1,3 +1,4 @@
+
 export interface ScriptSegment {
   id: string;
   originalText: string;
@@ -7,6 +8,8 @@ export interface ScriptSegment {
   isGeneratingAudio: boolean;
   isPlaying: boolean;
   provider?: AudioProvider; // 'gemini' | 'elevenlabs'
+  imageUrl?: string; // Base64 data URI for the image
+  isGeneratingImage: boolean;
 }
 
 export enum ProcessingStatus {

@@ -106,3 +106,44 @@ export const generateGeminiSpeech = async (text: string): Promise<Blob> => {
     throw error;
   }
 };
+
+/**
+ * Generates an image based on the prompt using Gemini.
+ */
+export const generateGeminiImage = async (prompt: string): Promise<string> => {
+  try {
+    return await keyManager.executeWithRotation('gemini', async (apiKey) => {
+      const ai = new GoogleGenAI({ apiKey });
+      // Using gemini-2.5-flash-image for standard image generation tasks
+      const modelId = "gemini-2.5-flash-image";
+
+      const response = await ai.models.generateContent({
+        model: modelId,
+        contents: {
+          parts: [{ text: prompt }]
+        },
+        config: {
+           // Ensure we get a 1:1 aspect ratio by default or let model decide.
+           // Note: imageConfig options might be limited depending on model version.
+           // For nano banana series (flash-image), we check parts for inlineData.
+        }
+      });
+
+      // Iterate through parts to find the image
+      const parts = response.candidates?.[0]?.content?.parts;
+      if (!parts) throw new Error("No content generated");
+
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          const mimeType = part.inlineData.mimeType || 'image/png';
+          return `data:${mimeType};base64,${part.inlineData.data}`;
+        }
+      }
+
+      throw new Error("No image data found in response.");
+    });
+  } catch (error: any) {
+    console.error("Gemini Image Gen Error:", error);
+    throw error;
+  }
+};
