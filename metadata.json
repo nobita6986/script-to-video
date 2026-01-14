@@ -1,0 +1,5 @@
+{
+  "name": "ScriptGenie",
+  "description": "An intelligent script-to-media processor. Splits long scripts into segments, generates AI image prompts for each scene using Gemini, and synthesizes high-quality speech using Gemini's latest audio capabilities.",
+  "requestFramePermissions": []
+}
