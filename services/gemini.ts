@@ -18,10 +18,12 @@ export const analyzeScript = async (scriptText: string): Promise<AnalysisRespons
       const prompt = `
         You are an expert script assistant. 
         1. Split the following script into natural, semantic segments (sentences or short paragraphs suitable for TTS).
-        2. For EACH segment, generate a detailed image prompt in the style of **"Oil painting combined with stick figures"**. 
-           - The style should look like a textured, artistic oil painting.
-           - The characters should be stylized, expressive stick figures integrated into this oil painting world.
-           - Describe the scene visually (colors, lighting, action).
+        2. For EACH segment, generate a detailed image prompt in the style of **"Modern Flat Vector Illustration / Cartoon Editorial"**.
+           - **Visual Style**: Flat vector art, thick outlines, clean geometric shapes, bright saturated colors, minimal shading.
+           - **Aesthetic**: Cartoon explainer style, conceptual storytelling, crisp digital art.
+           - **Background**: Soft gradients, abstract elements, subtle glowing accents, uncluttered.
+           - **Negative Constraints**: NO realistic textures, NO oil paint, NO brush strokes, NO noise/grain, NO 3D rendering.
+           - **Subject**: Describe the action or metaphor using simplified, confident cartoon characters.
         3. Return ONLY a JSON array.
         
         Script:
@@ -40,7 +42,7 @@ export const analyzeScript = async (scriptText: string): Promise<AnalysisRespons
               type: Type.OBJECT,
               properties: {
                 text: { type: Type.STRING, description: "The segment of the script" },
-                image_prompt: { type: Type.STRING, description: "A detailed visual description for image generation (Oil painting + Stick figures style)" }
+                image_prompt: { type: Type.STRING, description: "A detailed visual description for image generation (Flat Vector Cartoon style)" }
               },
               required: ["text", "image_prompt"]
             }
