@@ -7,6 +7,7 @@ import { analyzeScript, generateGeminiSpeech, generateGeminiImage } from './serv
 import { generateElevenLabsSpeech } from './services/elevenlabs';
 import { Github, Zap, Key } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 
 const App: React.FC = () => {
   const [segments, setSegments] = useState<ScriptSegment[]>([]);
@@ -155,6 +156,90 @@ const App: React.FC = () => {
     XLSX.writeFile(workbook, `script-genie-export-${Date.now()}.xlsx`);
   };
 
+  const handleDownloadAllImages = async () => {
+    const zip = new JSZip();
+    const folder = zip.folder("images");
+    let count = 0;
+
+    segments.forEach((seg, idx) => {
+      if (seg.imageUrl) {
+        // seg.imageUrl is formatted as "data:image/png;base64,..."
+        // Extract base64 part
+        const parts = seg.imageUrl.split(',');
+        if (parts.length === 2) {
+            const mimeMatch = parts[0].match(/:(.*?);/);
+            const extension = mimeMatch ? mimeMatch[1].split('/')[1] : 'png';
+            const base64Data = parts[1];
+            
+            // Pad index with leading zeros for proper sorting in OS
+            const paddedIndex = String(idx + 1).padStart(3, '0');
+            folder?.file(`segment_${paddedIndex}.${extension}`, base64Data, { base64: true });
+            count++;
+        }
+      }
+    });
+
+    if (count === 0) {
+      alert("No images available to download.");
+      return;
+    }
+
+    try {
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `script-genie-images-${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to generate zip", e);
+      alert("Failed to generate zip file.");
+    }
+  };
+
+  const handleDownloadAllAudio = async () => {
+    const zip = new JSZip();
+    const folder = zip.folder("audio");
+    let count = 0;
+
+    segments.forEach((seg, idx) => {
+      if (seg.audioBlob) {
+        // Pad index with leading zeros for proper sorting in OS
+        const paddedIndex = String(idx + 1).padStart(3, '0');
+        // Determine extension based on provider or assume wav (Gemini usually WAV/PCM converted)
+        // ElevenLabs is usually MP3, but our types might wrap it. 
+        // pcmToWav returns type 'audio/wav'.
+        const extension = seg.provider === 'elevenlabs' ? 'mp3' : 'wav';
+        
+        folder?.file(`segment_${paddedIndex}.${extension}`, seg.audioBlob);
+        count++;
+      }
+    });
+
+    if (count === 0) {
+      alert("No audio available to download.");
+      return;
+    }
+
+    try {
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `script-genie-audio-${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to generate zip", e);
+      alert("Failed to generate zip file.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 pb-20">
       <ApiManagerModal isOpen={isApiModalOpen} onClose={() => setIsApiModalOpen(false)} />
@@ -211,6 +296,8 @@ const App: React.FC = () => {
           onGenerateImage={handleGenerateImage}
           onGenerateAllImages={handleGenerateAllImages}
           isGeneratingAllImages={generatingAllImages}
+          onDownloadAllImages={handleDownloadAllImages}
+          onDownloadAllAudio={handleDownloadAllAudio}
         />
       </main>
     </div>
