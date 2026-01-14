@@ -18,16 +18,14 @@ export const analyzeScript = async (scriptText: string): Promise<AnalysisRespons
       const prompt = `
         You are an expert script assistant. 
         1. Split the following script into natural, semantic segments (sentences or short paragraphs suitable for TTS).
-        2. For EACH segment, generate a detailed image prompt in the style of **"Conceptual Cartoon Editorial Illustration – YouTube Explainer Style"**.
+        2. For EACH segment, generate an \`image_prompt\`.
            
-           **STRICT VISUAL STYLE GUIDE:**
-           - **Core Style**: Modern cartoon editorial illustration, High-Contrast, Narrative-driven.
-           - **Line & Shape**: **Thick outlines + bold shapes**. Clean, solid forms. Very few small details (must be readable as a thumbnail).
-           - **Characters**: Highly cartoonized, simple round heads, minimal facial features (dot eyes/curved lines), disproportionate bodies emphasizing expression/metaphor.
-           - **Color**: **High contrast, saturated colors**. Limited palette (1 main color, 1-2 opposing accent colors). Subtle glow/neon/lightning accents. Soft simple shadows.
-           - **Background**: **Minimal background, no realism**. Soft gradients, abstract geometry, arrows, zigzags, or symbols.
-           - **Concept**: Focus on **Visual Metaphors** to EXPLAIN the idea.
-           - **Negative Constraints**: NO oil painting, NO realistic textures, NO brush strokes, NO realism, NO cinematic lighting, NO photorealistic, NO 3D rendering.
+           **STRICT PROMPT GENERATION RULE:**
+           To generate the \`image_prompt\`, you must first create a concise **Visual Metaphor** or **Concept** (describing the main character, action, or symbolic meaning) based on the segment text. 
+           
+           Then, insert that concept into the exact middle of the following template:
+
+           "Modern cartoon editorial illustration in a bold flat vector style, created specifically for YouTube explainer and educational video thumbnails, wide 16:9 composition. {INSERT_VISUAL_METAPHOR_HERE}. Simplified cartoon characters with rounded proportions, minimal facial features, and clear expressive poses. Thick bold outlines, clean geometric shapes, and strong silhouette readability suitable for small-screen viewing. High-contrast layout with a limited but vibrant color palette, using saturated primary and secondary colors. Subtle glow effects, soft highlights, and minimal shadowing to add depth without realism. Abstract or smooth gradient background with simple geometric forms, motion lines, lightning shapes, or symbolic elements only. Clean, crisp digital illustration with an infographic and explainer-style look. Flat vector appearance, uncluttered composition, clear visual hierarchy. No realistic textures, no painterly effects, no photorealism, no 3D rendering. Aspect ratio 16:9, cinematic wide framing, centered or rule-of-thirds composition."
 
         3. Return ONLY a JSON array.
         
@@ -47,7 +45,7 @@ export const analyzeScript = async (scriptText: string): Promise<AnalysisRespons
               type: Type.OBJECT,
               properties: {
                 text: { type: Type.STRING, description: "The segment of the script" },
-                image_prompt: { type: Type.STRING, description: "A detailed visual description for image generation (Conceptual Cartoon Editorial style)" }
+                image_prompt: { type: Type.STRING, description: "The full image prompt generated using the required template" }
               },
               required: ["text", "image_prompt"]
             }
@@ -128,9 +126,10 @@ export const generateGeminiImage = async (prompt: string): Promise<string> => {
           parts: [{ text: prompt }]
         },
         config: {
-           // Ensure we get a 1:1 aspect ratio by default or let model decide.
-           // Note: imageConfig options might be limited depending on model version.
-           // For nano banana series (flash-image), we check parts for inlineData.
+           // Explicitly requesting 16:9 to match the prompt description
+           imageConfig: {
+             aspectRatio: "16:9"
+           }
         }
       });
 
