@@ -12,8 +12,8 @@ export const analyzeScript = async (scriptText: string): Promise<AnalysisRespons
       // Create a fresh instance for each attempt with the specific key
       const ai = new GoogleGenAI({ apiKey });
       
-      // Use gemini-2.0-flash as the stable model for text/json tasks
-      const modelId = "gemini-2.0-flash";
+      // Use gemini-3-flash-preview which is recommended for text tasks and handles larger contexts better
+      const modelId = "gemini-3-flash-preview";
       
       const prompt = `
         You are an expert script assistant. 
@@ -30,6 +30,7 @@ export const analyzeScript = async (scriptText: string): Promise<AnalysisRespons
         contents: prompt,
         config: {
           responseMimeType: "application/json",
+          maxOutputTokens: 8192, // Explicitly set high token limit to prevent JSON truncation
           responseSchema: {
             type: Type.ARRAY,
             items: {
@@ -48,8 +49,14 @@ export const analyzeScript = async (scriptText: string): Promise<AnalysisRespons
         throw new Error("Empty response received from Gemini.");
       }
 
-      // Try parsing
-      return JSON.parse(response.text) as AnalysisResponseItem[];
+      // Try parsing with error handling for truncation
+      try {
+        return JSON.parse(response.text) as AnalysisResponseItem[];
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        // Check if it looks like truncation (end of string)
+        throw new Error("The generated analysis was too long and got cut off. Please try inputting a shorter part of your script.");
+      }
     });
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
